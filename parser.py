@@ -25,12 +25,19 @@ def doSomething():
     print('all good inside parser')
     return soup.find_all(["p"])[0].get_text()
 
+def cleanupVerse(verse):
+    if verse.text:
+        if verse.text[-1] in [')', '(']:
+            verse.text = verse.text[:-1]
+
 def parse(url):
     f = open(url,"r")
     html_doc = f.read()
 
     soup = BeautifulSoup(html_doc)
-    p = soup.p
+    # p = soup.p
+    raw_text = soup.find(attrs={"name": "1"})
+
     verses = []
     verse = Verse()
     num = 0
@@ -39,7 +46,7 @@ def parse(url):
     is_paragraph_next = True
     close_tag = ''
 
-    for e in p.next_elements:
+    for e in raw_text.next_elements:
         if not isinstance(e, NavigableString):
             if e.name == 'b':
                 if 'class' in e.attrs:
@@ -52,16 +59,20 @@ def parse(url):
                 continue # this is for the html-1 b tag, ARGH
 
 
-            if e.name in ['big', 'small']:
+            if e.name in ['big', 'small', 'span'] and record:
                 verse.text += '<' + e.name + '>'
                 close_tag = '</' + e.name + '>'
                 continue
 
             if e.get('name'):
                 record = False
-                verses.append(verse)
-                verse = Verse()
-                continue
+                if e.get('name').isdigit():
+                    if verse.text:
+                        if verse.text[-1] in [')', '(']:
+                            verse.text = verse.text[:-1]
+                    verses.append(verse)
+                    verse = Verse()
+                continue # this is for paragraph links
 
             if e.name == 'p':
                 is_paragraph_next = True
@@ -83,8 +94,8 @@ def parse(url):
                 close_tag = ''
 
     verses.append(verse) # don't forget to append last verse...
-    return verses
 
+    return verses
 
 # con = lite.connect('scriptures.db')
 # with con:

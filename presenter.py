@@ -43,17 +43,21 @@ class Presenter(QWidget):
 def main():
     # txt = parser.doSomething()
     # print txt[::-1]
-    url = "OT/Bereshit/Bereshit03.htm"
+    # url = "OT/Bereshit/Bereshit01.htm"
+    url = "NT/Modern/Luke/Luke24.htm"
+
+    # CARE! this crashes the program ->
+    # url = "OT/Daniel/Daniel02.htm"
 
     verses = parser.parse(url)
-    print verses[0].text
-    txt = ''
+
+    txt = '<p>num of verses:{}</p>'.format(len(verses))
     for v in verses:
         line = u'<small>{}</small>{}'.format(v.num, v.text)
         if v.is_paragraph:
             line = "<p>" + line
         txt += line
-    print txt
+    # print txt
 
     app = QApplication(sys.argv)
 
