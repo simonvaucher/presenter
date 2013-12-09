@@ -25,12 +25,25 @@ def doSomething():
     print('all good inside parser')
     return soup.find_all(["p"])[0].get_text()
 
-def cleanupVerse(verse):
-    if verse.text:
-        if verse.text[-1] in [')', '(']:
-            verse.text = verse.text[:-1]
-
 def parse(url):
+    # record main or alternate text, according to flag
+    def record_text(text):
+        if use_alt: # WATCH OUT - this belongs to parse() parent method
+            verse.alt_text += unicode(text)
+        else:
+            verse.text += unicode(text)
+
+    # utility - clean extra spaces. add/expend at will
+    def cleanup_verse():
+        if verse.text:
+            if verse.text[-1] in [')', '(']:
+                verse.text = verse.text[:-1]
+            verse.text = ' '.join(verse.text.split())
+        if verse.alt_text:
+            if verse.alt_text[-1] in [')', '(']:
+                verse.alt_text = verse.alt_text[:-1]
+            verse.alt_text = ' '.join(verse.alt_text.split())
+
     f = open(url,"r")
     html_doc = f.read()
 
@@ -45,42 +58,57 @@ def parse(url):
     record_next = False
     is_paragraph_next = True
     close_tag = ''
+    inside_verse = False
+    use_alt = False
 
     for e in raw_text.next_elements:
         if not isinstance(e, NavigableString):
             if e.name == 'b':
                 if 'class' in e.attrs:
-                    num += 1
-                    verse.num = num
-                    if is_paragraph_next:
-                        verse.is_paragraph = True
-                        is_paragraph_next = False
-                    record_next = True
+                    if inside_verse:    # should happen only on double-language (translated) parts
+                        print 'inside verse'
+                        use_alt = True
+                        record_next = True
+                    else:
+                        use_alt = False
+                        inside_verse = True
+                        num += 1
+                        verse.num = num
+                        if is_paragraph_next:
+                            verse.is_paragraph = True
+                            is_paragraph_next = False
+                        record_next = True
+                # else:
                 continue # this is for the html-1 b tag, ARGH
 
-
             if e.name in ['big', 'small', 'span'] and record:
-                verse.text += '<' + e.name + '>'
+                record_text('<' + e.name + '>')
+                # if use_alt:
+                #     verse.alt_text += '<' + e.name + '>'
+                # else:
+                #     verse.text += '<' + e.name + '>'
                 close_tag = '</' + e.name + '>'
                 continue
 
             if e.get('name'):
+                inside_verse = False
                 record = False
                 if e.get('name').isdigit():
-                    if verse.text:
-                        if verse.text[-1] in [')', '(']:
-                            verse.text = verse.text[:-1]
+                    cleanup_verse()
+
                     verses.append(verse)
                     verse = Verse()
                 continue # this is for paragraph links
 
-            if e.name == 'p':
+            if e.name in ['p', 'table']:
                 is_paragraph_next = True
                 continue
 
             if e.name == 'a' and 'href' in e.attrs:
                 record = False
 
+            if e.name in ['table', 'colgroup', 'col', 'tr', 'td']:
+                record = False
 
         if record_next:
             record_next = False
@@ -88,14 +116,16 @@ def parse(url):
             continue
 
         if record:
-            verse.text += unicode(e)
+            record_text(unicode(e))
             if close_tag:
-                verse.text += close_tag
+                record_text(close_tag)
                 close_tag = ''
 
-    verses.append(verse) # don't forget to append last verse...
+    cleanup_verse()         # don't forget to clean and append last verse
+    verses.append(verse)
 
     return verses
+
 
 # con = lite.connect('scriptures.db')
 # with con:

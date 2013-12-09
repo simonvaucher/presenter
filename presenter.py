@@ -44,20 +44,24 @@ def main():
     # txt = parser.doSomething()
     # print txt[::-1]
     # url = "OT/Bereshit/Bereshit01.htm"
-    url = "NT/Modern/Luke/Luke24.htm"
+    # url = "NT/Modern/Luke/Luke24.htm"
+    # url = "OT/Tehillim/Tehillim49.htm"
 
-    # CARE! this crashes the program ->
-    # url = "OT/Daniel/Daniel02.htm"
+    # CRAZY TABLE STUFF
+    url = "OT/Daniel/Daniel02.htm"
 
     verses = parser.parse(url)
 
     txt = '<p>num of verses:{}</p>'.format(len(verses))
     for v in verses:
-        line = u'<small>{}</small>{}'.format(v.num, v.text)
+        line = u'<small> {}</small> {}<em><strong> {}</strong></em>'.format(v.num, v.text, v.alt_text)
         if v.is_paragraph:
             line = "<p>" + line
         txt += line
-    # print txt
+        print line
+        # print v.num
+        # print v.text
+        # print v.alt_text
 
     app = QApplication(sys.argv)
 
